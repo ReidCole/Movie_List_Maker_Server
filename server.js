@@ -238,7 +238,6 @@ app.post("/token", async (req, res) => {
         username: user.username,
       };
       const accessToken = generateAccessToken(userObj);
-      console.log("sending token");
       res.json({
         accessToken: accessToken,
         username: user.username,
