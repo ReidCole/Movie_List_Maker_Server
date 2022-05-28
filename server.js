@@ -14,7 +14,7 @@ const app = express();
 const port = 4000;
 app.use(
   cors({
-    origin: "https://snazzy-snickerdoodle-781b19.netlify.app",
+    origin: "https://client.movielistmakerserver.xyz",
     credentials: true,
   })
 );
