@@ -195,9 +195,12 @@ app.post("/signup", async (req, res) => {
       creationDate: now,
       lastLoginDate: now,
     });
+    const userObj = {
+      username: user.username,
+    };
 
-    const accessToken = generateAccessToken(user.username);
-    const refreshToken = await generateRefreshToken(user.username);
+    const accessToken = generateAccessToken(userObj);
+    const refreshToken = await generateRefreshToken(userObj);
 
     res.cookie("refresh-token", refreshToken, {
       httpOnly: true,
@@ -228,10 +231,10 @@ app.post("/token", async (req, res) => {
         await RefreshToken.deleteMany({ token: refreshToken });
         return res.sendStatus(403);
       }
-      const dataToSign = {
+      const userObj = {
         username: user.username,
       };
-      const accessToken = generateAccessToken(dataToSign);
+      const accessToken = generateAccessToken(userObj);
       console.log("sending token");
       res.json({
         accessToken: accessToken,
