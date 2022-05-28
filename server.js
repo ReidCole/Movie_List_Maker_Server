@@ -57,24 +57,23 @@ app.get("/searchmovies/:query", async (req, res) => {
   }
 });
 
-app.post("/createlist", async (req, res) => {
-  const reqBody = req.body;
+app.post("/createlist", authenticateToken, async (req, res) => {
   try {
     const list = await List.create({
-      listName: reqBody.listName,
-      listDescription: reqBody.listDescription,
-      listings: reqBody.listings.map((reqListing) => ({
+      listName: req.body.listName,
+      listDescription: req.body.listDescription,
+      listings: req.body.listings.map((reqListing) => ({
         title: reqListing.title,
         imgUrl: reqListing.imgUrl,
         movieDbId: reqListing.movieDbId,
         mediaType: reqListing.mediaType,
         idWithinList: reqListing.idWithinList,
       })),
-      ownerUsername: reqBody.ownerUsername,
+      ownerUsername: req.body.ownerUsername,
       creationDate: Date.now(),
       lastUpdatedDate: Date.now(),
     });
-    const user = await User.findOne({ username: reqBody.ownerUsername });
+    const user = await User.findOne({ username: req.userObj.username });
     if (user === null) {
       console.log("tried to save to account that doesn't exist in database");
       return res.sendStatus(404);
@@ -94,12 +93,16 @@ app.post("/createlist", async (req, res) => {
 
 app.patch("/updatelist/:id", authenticateToken, async (req, res) => {
   const id = req.params.id;
-  const reqBody = req.body;
   try {
     const list = await List.findById(id);
-    list.listName = reqBody.listName;
-    list.listDescription = reqBody.listDescription;
-    list.listings = reqBody.listings;
+    if (list.ownerUsername !== req.userObj.username) {
+      console.log("non-owner user trying to update this list", id);
+      return res.sendStatus(403);
+    }
+
+    list.listName = req.body.listName;
+    list.listDescription = req.body.listDescription;
+    list.listings = req.body.listings;
     await list.save();
     console.log("updated list successfully");
     res.status(200).send(list);
@@ -109,10 +112,10 @@ app.patch("/updatelist/:id", authenticateToken, async (req, res) => {
   }
 });
 
-app.delete("/deletelist/:id", async (req, res) => {
+app.delete("/deletelist/:id", authenticateToken, async (req, res) => {
   const id = req.params.id;
   try {
-    const user = await User.findOne({ lists: id });
+    const user = await User.findOne({ username: req.userObj.username });
     if (!user) return res.sendStatus(404);
 
     const idToRemove = new mongoose.Types.ObjectId(id);
@@ -307,12 +310,12 @@ function authenticateToken(req, res, next) {
     console.log("token is null");
     return res.sendStatus(401);
   }
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, userObj) => {
     if (err) {
       console.log(err.message);
       return res.sendStatus(403);
     }
-    req.user = user;
+    req.userObj = userObj;
     next();
   });
 }
